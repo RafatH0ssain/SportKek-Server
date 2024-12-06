@@ -7,6 +7,12 @@ const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
 //  MIDDLEWARE
 app.use(cors());
+const corsOptions = {
+    origin: 'http://localhost:5000',  // Allow only your frontend to access
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],  // Allow only specific methods
+    allowedHeaders: ['Content-Type', 'Authorization']  // Allow specific headers
+};
+app.use(cors(corsOptions));
 app.use(express.json());
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PW}@cluster0.oyqb2.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
@@ -160,7 +166,6 @@ async function run() {
         //     }
         // ];
         // const result = await sportsCollection.insertMany(sportsEquipment);
-
 
         app.get('/equipment', async (req, res) => {
             const cursor = sportsCollection.find();
