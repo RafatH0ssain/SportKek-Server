@@ -6,9 +6,8 @@ const port = process.env.PORT || 5000;
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
 //  MIDDLEWARE
-app.use(cors());
 const corsOptions = {
-    origin: 'http://localhost:5000',  // Allow only your frontend to access
+    origin: '*',
     methods: ['GET', 'POST', 'PUT', 'DELETE'],  // Allow only specific methods
     allowedHeaders: ['Content-Type', 'Authorization']  // Allow specific headers
 };
@@ -21,7 +20,7 @@ const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PW}@cluster0.
 const client = new MongoClient(uri, {
     serverApi: {
         version: ServerApiVersion.v1,
-        strict: true,
+        strict: false,
         deprecationErrors: true,
     }
 });
@@ -173,12 +172,75 @@ async function run() {
             res.send(result);
         })
 
+        app.get('/categories', async (req, res) => {
+            try {
+                console.log("Attempting to fetch categories...");
+
+                if (!sportsCollection) {
+                    console.error("No sportsCollection defined.");
+                    return res.status(500).json({ message: "Internal Server Error" });
+                }
+
+                const categories = await sportsCollection.distinct('categoryName');
+                console.log("Retrieved categories:", categories);
+
+                if (!categories || categories.length === 0) {
+                    console.error("No categories found.");
+                    return res.status(404).json({ message: "No categories found" });
+                }
+
+                res.status(200).json(categories);
+            } catch (error) {
+                console.error("Error while querying database: ", error);
+                res.status(500).json({ message: "Database query failed", error });
+            }
+        });
+
+
         app.get('/equipment/:id', async (req, res) => {
-            const id = req.params.id;
-            const query = { _id: new ObjectId(id) };
-            const result = await sportsCollection.findOne(query);
-            res.send(result);
-        })
+            try {
+                const { id } = req.params; // Access the ID directly
+                if (!ObjectId.isValid(id)) {
+                    return res.status(400).json({ error: 'Invalid ID format' });
+                }
+
+                const query = { _id: new ObjectId(id) };
+                const result = await sportsCollection.findOne(query);
+
+                if (result) {
+                    res.status(200).json(result);
+                } else {
+                    res.status(404).json({ error: 'No record found with that ID' });
+                }
+            } catch (error) {
+                console.error('Error fetching equipment:', error);
+                res.status(500).json({ error: 'Internal Server Error' });
+            }
+        });
+
+        app.post('/addEquipment', async (req, res) => {
+            const { image, itemName, categoryName, description, price, rating, customization, processingTime, stockStatus, userEmail, userName } = req.body;
+            try {
+                const newEquipment = {
+                    image,
+                    itemName,
+                    categoryName,
+                    description,
+                    price,
+                    rating,
+                    customization,
+                    processingTime,
+                    stockStatus,
+                    userEmail,
+                    userName,
+                };
+                await sportsCollection.insertOne(newEquipment);
+                res.status(201).json({ message: 'Equipment added successfully!' });
+            } catch (error) {
+                res.status(500).json({ error: 'Failed to save data' });
+            }
+        });
+
 
         app.post('/equipment', async (req, res) => {
             const newCoffee = req.body;
