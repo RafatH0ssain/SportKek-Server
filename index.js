@@ -251,25 +251,38 @@ async function run() {
 
         app.put('/equipment/:id', async (req, res) => {
             const id = req.params.id;
-            const filter = { _id: new ObjectId(id) }
-            const options = { upsert: true };
+            const filter = { _id: new ObjectId(id) };
             const updateEquipment = req.body;
-            const coffee = {
-                $set: {
-                    name: updateEquipment.name, quantity: updateEquipment.quantity, supplier: updateEquipment.supplier, taste: updateEquipment.taste, category: updateEquipment.category, details: updateEquipment.details, photo: updateEquipment.photo
-                }
-            }
 
-            const result = await sportsCollection.updateOne(filter, coffee, options);
-            res.send(result);
+            try {
+                const result = await sportsCollection.updateOne(
+                    filter,
+                    {
+                        $set: {
+                            image: updateEquipment.image,
+                            itemName: updateEquipment.itemName,
+                            categoryName: updateEquipment.categoryName,
+                            description: updateEquipment.description,
+                            price: parseFloat(updateEquipment.price),
+                            rating: parseFloat(updateEquipment.rating),
+                            customization: updateEquipment.customization,
+                            processingTime: updateEquipment.processingTime,
+                            stockStatus: parseInt(updateEquipment.stockStatus),
+                        },
+                    }
+                );
+
+                if (result.matchedCount === 0) {
+                    return res.status(404).json({ message: "Equipment not found" });
+                }
+
+                res.status(200).json(result);
+            } catch (error) {
+                console.error('Error updating equipment:', error);
+                res.status(500).json({ message: 'Server error' });
+            }
         });
 
-        app.delete('/equipment/:id', async (req, res) => {
-            const id = req.params.id;
-            const query = { _id: new ObjectId(id) };
-            const result = await sportsCollection.deleteOne(query);
-            res.send(result);
-        })
 
         // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
